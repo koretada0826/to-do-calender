@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>To Do カレンダー</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --white: #ffffff;
+  --bg: #f8f9fa;
+  --border: #e9ecef;
+  --text: #212529;
+  --text-light: #6c757d;
+  --primary: #4263eb;
+  --primary-light: #edf2ff;
+  --danger: #fa5252;
+  --success: #40c057;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --radius: 12px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--white);
+}
+.btn-primary:hover { background: #3b5bdb; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-light);
+}
+.btn-ghost:hover { background: var(--bg); }
+
+.btn-danger {
+  background: var(--danger);
+  color: var(--white);
+}
+.btn-danger:hover { opacity: 0.9; }
+
+.btn-icon {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+}
+
+/* Layout */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 24px;
+}
+
+@media (max-width: 800px) {
+  .container {
+    grid-template-columns: 1fr;
+    padding: 16px;
+  }
+}
+
+/* Calendar */
+.calendar-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+}
+
+.calendar-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.calendar-nav h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.calendar-dow {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-light);
+  padding: 8px 0;
+  text-transform: uppercase;
+}
+
+.calendar-day {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.calendar-day:hover { background: var(--primary-light); }
+
+.calendar-day.other-month {
+  color: #ced4da;
+}
+
+.calendar-day.today {
+  background: var(--primary);
+  color: var(--white);
+  font-weight: 700;
+}
+.calendar-day.today:hover { background: #3b5bdb; }
+
+.calendar-day.selected {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+}
+
+.calendar-day.today.selected {
+  outline-color: var(--white);
+}
+
+.day-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--primary);
+  position: absolute;
+  bottom: 4px;
+}
+
+.calendar-day.today .day-dot { background: var(--white); }
+
+/* Sidebar */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.day-detail {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.day-detail h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  transition: all 0.15s;
+}
+
+.task-item:hover { background: #f1f3f5; }
+
+.task-check {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #dee2e6;
+  border-radius: 50%;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 1px;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.task-check:hover { border-color: var(--primary); }
+
+.task-check.done {
+  background: var(--success);
+  border-color: var(--success);
+}
+
+.task-check.done::after {
+  content: '';
+  width: 6px;
+  height: 10px;
+  border: solid var(--white);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  margin-top: -2px;
+}
+
+.task-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.task-info.done-text {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.task-title {
+  font-size: 14px;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.task-time {
+  font-size: 12px;
+  color: var(--primary);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.task-memo {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 2px;
+  word-break: break-word;
+}
+
+.task-delete {
+  opacity: 0;
+  background: none;
+  border: none;
+  color: var(--danger);
+  cursor: pointer;
+  font-size: 16px;
+  padding: 2px;
+  transition: opacity 0.15s;
+  flex-shrink: 0;
+}
+
+.task-item:hover .task-delete { opacity: 1; }
+
+.empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+/* Add task button */
+.add-task-btn {
+  width: 100%;
+  padding: 12px;
+  border: 2px dashed var(--border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.add-task-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--primary-light);
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(4px);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+.modal {
+  background: var(--white);
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  width: 90%;
+  max-width: 440px;
+  padding: 28px;
+  transform: translateY(20px);
+  transition: transform 0.2s;
+}
+
+.modal-overlay.open .modal { transform: translateY(0); }
+
+.modal h2 {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-light);
+  margin-bottom: 6px;
+}
+
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s;
+  background: var(--white);
+  color: var(--text);
+}
+
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+/* Settings panel */
+.settings-card {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.settings-card h3 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.email-display {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.email-display .email-addr {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notification-status {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-top: 12px;
+  padding: 8px 12px;
+  background: var(--bg);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.status-dot.active { background: var(--success); }
+.status-dot.inactive { background: #dee2e6; }
+
+/* Toggle */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.toggle-wrap span {
+  font-size: 14px;
+}
+
+.toggle {
+  width: 44px;
+  height: 24px;
+  background: #dee2e6;
+  border-radius: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.toggle.on { background: var(--primary); }
+
+.toggle::after {
+  content: '';
+  width: 18px;
+  height: 18px;
+  background: var(--white);
+  border-radius: 50%;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+
+.toggle.on::after { transform: translateX(20px); }
+
+/* Today indicator in sidebar */
+.today-badge {
+  display: inline-block;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-left: 8px;
+}
+
+/* Notification badge on header */
+.notif-count {
+  background: var(--danger);
+  color: var(--white);
+  font-size: 11px;
+  font-weight: 700;
+  min-width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  padding: 0 4px;
+}
+
+/* Sunday/Saturday colors */
+.calendar-dow:first-child, .calendar-day.sunday { color: var(--danger); }
+.calendar-dow:last-child, .calendar-day.saturday { color: var(--primary); }
+.calendar-day.other-month.sunday,
+.calendar-day.other-month.saturday { opacity: 0.4; }
+.calendar-day.today.sunday,
+.calendar-day.today.saturday { color: var(--white); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>To Do カレンダー</h1>
+  <div class="header-actions">
+    <button class="btn btn-ghost" onclick="goToday()">今日</button>
+    <button class="btn btn-primary" onclick="openAddModal()">+ 追加</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="calendar-card">
+    <div class="calendar-nav">
+      <button class="btn btn-icon btn-ghost" onclick="changeMonth(-1)">&#9664;</button>
+      <h2 id="monthLabel"></h2>
+      <button class="btn btn-icon btn-ghost" onclick="changeMonth(1)">&#9654;</button>
+    </div>
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+
+  <div class="sidebar">
+    <div class="day-detail">
+      <h3 id="dayTitle">-</h3>
+      <div class="task-list" id="taskList"></div>
+      <button class="add-task-btn" onclick="openAddModal()">+ タスクを追加</button>
+    </div>
+
+    <div class="settings-card">
+      <h3>通知設定</h3>
+
+      <div id="emailSection">
+        <div id="emailEmpty">
+          <button class="btn btn-ghost" onclick="openEmailModal()" style="width:100%;justify-content:center;">
+            メールアドレスを登録
+          </button>
+        </div>
+        <div id="emailRegistered" style="display:none;">
+          <div class="email-display">
+            <span class="email-addr" id="emailDisplay"></span>
+            <button class="btn btn-ghost btn-icon" onclick="openEmailModal()" title="変更" style="font-size:12px;">編集</button>
+            <button class="btn btn-ghost btn-icon" onclick="removeEmail()" title="削除" style="font-size:12px;color:var(--danger);">&#10005;</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="toggle-wrap">
+        <span>メール通知 (1時間前)</span>
+        <div class="toggle" id="emailToggle" onclick="toggleEmailNotif()"></div>
+      </div>
+
+      <div class="toggle-wrap">
+        <span>ブラウザ通知</span>
+        <div class="toggle" id="browserToggle" onclick="toggleBrowserNotif()"></div>
+      </div>
+
+      <div class="notification-status" id="notifStatus">
+        <span class="status-dot inactive"></span>
+        <span>通知は無効です</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Task Modal -->
+<div class="modal-overlay" id="taskModal">
+  <div class="modal">
+    <h2 id="modalTitle">タスクを追加</h2>
+    <div class="form-group">
+      <label>タイトル</label>
+      <input type="text" id="taskTitleInput" placeholder="タスク名を入力">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>日付</label>
+        <input type="date" id="taskDateInput">
+      </div>
+      <div class="form-group">
+        <label>時間 (任意)</label>
+        <input type="time" id="taskTimeInput">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>メモ (任意)</label>
+      <textarea id="taskMemoInput" placeholder="詳細やメモを入力"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeTaskModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveTask()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Email Modal -->
+<div class="modal-overlay" id="emailModal">
+  <div class="modal">
+    <h2>メールアドレス登録</h2>
+    <div class="form-group">
+      <label>メールアドレス</label>
+      <input type="email" id="emailInput" placeholder="example@mail.com">
+    </div>
+    <p style="font-size:12px;color:var(--text-light);margin-bottom:16px;">
+      タスクの1時間前に通知メールを送信します。<br>
+      ※ブラウザ通知も併用できます。
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeEmailModal()">キャンセル</button>
+      <button class="btn btn-primary" onclick="saveEmail()">登録</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// --- State ---
+let currentYear, currentMonth, selectedDate;
+let tasks = JSON.parse(localStorage.getItem('todo_tasks') || '[]');
+let settings = JSON.parse(localStorage.getItem('todo_settings') || '{"email":"","emailNotif":false,"browserNotif":false}');
+let editingTaskId = null;
+let notificationTimers = [];
+
+const MONTHS = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+const DOWS = ['日','月','火','水','木','金','土'];
+
+// --- Init ---
+function init() {
+  const today = new Date();
+  currentYear = today.getFullYear();
+  currentMonth = today.getMonth();
+  selectedDate = formatDate(today);
+  renderCalendar();
+  renderTasks();
+  updateSettingsUI();
+  setupNotificationTimers();
+  // Check every minute for notifications
+  setInterval(checkNotifications, 60000);
+}
+
+// --- Date utils ---
+function formatDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+function parseDate(s) {
+  const [y,m,d] = s.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+
+function isToday(dateStr) {
+  return dateStr === formatDate(new Date());
+}
+
+// --- Calendar ---
+function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  document.getElementById('monthLabel').textContent = `${currentYear}年 ${MONTHS[currentMonth]}`;
+
+  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysInPrev = new Date(currentYear, currentMonth, 0).getDate();
+
+  let html = DOWS.map(d => `<div class="calendar-dow">${d}</div>`).join('');
+
+  // Previous month
+  for (let i = firstDay - 1; i >= 0; i--) {
+    const day = daysInPrev - i;
+    const date = new Date(currentYear, currentMonth - 1, day);
+    const ds = formatDate(date);
+    const dow = date.getDay();
+    const cls = ['calendar-day','other-month'];
+    if (dow === 0) cls.push('sunday');
+    if (dow === 6) cls.push('saturday');
+    const hasTasks = tasks.some(t => t.date === ds && !t.done);
+    html += `<div class="${cls.join(' ')}" onclick="selectDate('${ds}', ${date.getMonth()})">
+      ${day}${hasTasks ? '<span class="day-dot"></span>' : ''}
+    </div>`;
+  }
+
+  // Current month
+  for (let day = 1; day <= daysInMonth; day++) {
+    const date = new Date(currentYear, currentMonth, day);
+    const ds = formatDate(date);
+    const dow = date.getDay();
+    const cls = ['calendar-day'];
+    if (isToday(ds)) cls.push('today');
+    if (ds === selectedDate) cls.push('selected');
+    if (dow === 0) cls.push('sunday');
+    if (dow === 6) cls.push('saturday');
+    const hasTasks = tasks.some(t => t.date === ds && !t.done);
+    html += `<div class="${cls.join(' ')}" onclick="selectDate('${ds}')">
+      ${day}${hasTasks ? '<span class="day-dot"></span>' : ''}
+    </div>`;
+  }
+
+  // Next month
+  const totalCells = firstDay + daysInMonth;
+  const remaining = (7 - (totalCells % 7)) % 7;
+  for (let day = 1; day <= remaining; day++) {
+    const date = new Date(currentYear, currentMonth + 1, day);
+    const ds = formatDate(date);
+    const dow = date.getDay();
+    const cls = ['calendar-day','other-month'];
+    if (dow === 0) cls.push('sunday');
+    if (dow === 6) cls.push('saturday');
+    const hasTasks = tasks.some(t => t.date === ds && !t.done);
+    html += `<div class="${cls.join(' ')}" onclick="selectDate('${ds}', ${date.getMonth()})">
+      ${day}${hasTasks ? '<span class="day-dot"></span>' : ''}
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+}
+
+function changeMonth(delta) {
+  currentMonth += delta;
+  if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+  if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+  renderCalendar();
+}
+
+function goToday() {
+  const today = new Date();
+  currentYear = today.getFullYear();
+  currentMonth = today.getMonth();
+  selectedDate = formatDate(today);
+  renderCalendar();
+  renderTasks();
+}
+
+function selectDate(dateStr, month) {
+  selectedDate = dateStr;
+  if (month !== undefined && month !== currentMonth) {
+    const d = parseDate(dateStr);
+    currentYear = d.getFullYear();
+    currentMonth = d.getMonth();
+  }
+  renderCalendar();
+  renderTasks();
+}
+
+// --- Tasks ---
+function renderTasks() {
+  const list = document.getElementById('taskList');
+  const title = document.getElementById('dayTitle');
+  const d = parseDate(selectedDate);
+  const dayLabel = `${d.getMonth()+1}月${d.getDate()}日 (${DOWS[d.getDay()]})`;
+  title.innerHTML = dayLabel + (isToday(selectedDate) ? '<span class="today-badge">今日</span>' : '');
+
+  const dayTasks = tasks
+    .filter(t => t.date === selectedDate)
+    .sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      if (a.time && b.time) return a.time.localeCompare(b.time);
+      if (a.time) return -1;
+      if (b.time) return 1;
+      return 0;
+    });
+
+  if (dayTasks.length === 0) {
+    list.innerHTML = '<div class="empty-state">この日のタスクはありません</div>';
+    return;
+  }
+
+  list.innerHTML = dayTasks.map(t => `
+    <div class="task-item">
+      <div class="task-check ${t.done ? 'done' : ''}" onclick="toggleTask('${t.id}')"></div>
+      <div class="task-info ${t.done ? 'done-text' : ''}">
+        <div class="task-title">${escHtml(t.title)}</div>
+        ${t.time ? `<div class="task-time">${t.time}</div>` : ''}
+        ${t.memo ? `<div class="task-memo">${escHtml(t.memo)}</div>` : ''}
+      </div>
+      <button class="task-delete" onclick="deleteTask('${t.id}')" title="削除">&#10005;</button>
+    </div>
+  `).join('');
+}
+
+function toggleTask(id) {
+  const task = tasks.find(t => t.id === id);
+  if (task) {
+    task.done = !task.done;
+    saveTasks();
+    renderTasks();
+    renderCalendar();
+  }
+}
+
+function deleteTask(id) {
+  tasks = tasks.filter(t => t.id !== id);
+  saveTasks();
+  renderTasks();
+  renderCalendar();
+}
+
+function saveTasks() {
+  localStorage.setItem('todo_tasks', JSON.stringify(tasks));
+  setupNotificationTimers();
+}
+
+// --- Task Modal ---
+function openAddModal() {
+  editingTaskId = null;
+  document.getElementById('modalTitle').textContent = 'タスクを追加';
+  document.getElementById('taskTitleInput').value = '';
+  document.getElementById('taskDateInput').value = selectedDate;
+  document.getElementById('taskTimeInput').value = '';
+  document.getElementById('taskMemoInput').value = '';
+  openModal('taskModal');
+  setTimeout(() => document.getElementById('taskTitleInput').focus(), 200);
+}
+
+function saveTask() {
+  const title = document.getElementById('taskTitleInput').value.trim();
+  const date = document.getElementById('taskDateInput').value;
+  const time = document.getElementById('taskTimeInput').value;
+  const memo = document.getElementById('taskMemoInput').value.trim();
+
+  if (!title) {
+    document.getElementById('taskTitleInput').focus();
+    return;
+  }
+  if (!date) {
+    document.getElementById('taskDateInput').focus();
+    return;
+  }
+
+  if (editingTaskId) {
+    const task = tasks.find(t => t.id === editingTaskId);
+    if (task) {
+      task.title = title;
+      task.date = date;
+      task.time = time;
+      task.memo = memo;
+      task.notified = false;
+    }
+  } else {
+    tasks.push({
+      id: 'task_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+      title, date, time, memo,
+      done: false,
+      notified: false
+    });
+  }
+
+  saveTasks();
+  selectedDate = date;
+  const d = parseDate(date);
+  currentYear = d.getFullYear();
+  currentMonth = d.getMonth();
+  renderCalendar();
+  renderTasks();
+  closeTaskModal();
+}
+
+function closeTaskModal() {
+  closeModal('taskModal');
+}
+
+// --- Email ---
+function openEmailModal() {
+  document.getElementById('emailInput').value = settings.email || '';
+  openModal('emailModal');
+  setTimeout(() => document.getElementById('emailInput').focus(), 200);
+}
+
+function closeEmailModal() {
+  closeModal('emailModal');
+}
+
+function saveEmail() {
+  const email = document.getElementById('emailInput').value.trim();
+  if (!email || !email.includes('@')) {
+    document.getElementById('emailInput').focus();
+    return;
+  }
+  settings.email = email;
+  settings.emailNotif = true;
+  saveSettings();
+  updateSettingsUI();
+  closeEmailModal();
+}
+
+function removeEmail() {
+  settings.email = '';
+  settings.emailNotif = false;
+  saveSettings();
+  updateSettingsUI();
+}
+
+function saveSettings() {
+  localStorage.setItem('todo_settings', JSON.stringify(settings));
+}
+
+function updateSettingsUI() {
+  const hasEmail = !!settings.email;
+  document.getElementById('emailEmpty').style.display = hasEmail ? 'none' : 'block';
+  document.getElementById('emailRegistered').style.display = hasEmail ? 'block' : 'none';
+  document.getElementById('emailDisplay').textContent = settings.email;
+
+  const emailToggle = document.getElementById('emailToggle');
+  emailToggle.classList.toggle('on', settings.emailNotif);
+
+  const browserToggle = document.getElementById('browserToggle');
+  browserToggle.classList.toggle('on', settings.browserNotif);
+
+  const status = document.getElementById('notifStatus');
+  const active = settings.emailNotif || settings.browserNotif;
+  status.innerHTML = `
+    <span class="status-dot ${active ? 'active' : 'inactive'}"></span>
+    <span>${active ? '通知が有効です' + (settings.emailNotif ? ' (メール)' : '') + (settings.browserNotif ? ' (ブラウザ)' : '') : '通知は無効です'}</span>
+  `;
+}
+
+function toggleEmailNotif() {
+  if (!settings.email) {
+    openEmailModal();
+    return;
+  }
+  settings.emailNotif = !settings.emailNotif;
+  saveSettings();
+  updateSettingsUI();
+}
+
+function toggleBrowserNotif() {
+  if (!settings.browserNotif && Notification.permission !== 'granted') {
+    Notification.requestPermission().then(p => {
+      if (p === 'granted') {
+        settings.browserNotif = true;
+        saveSettings();
+        updateSettingsUI();
+      }
+    });
+    return;
+  }
+  settings.browserNotif = !settings.browserNotif;
+  saveSettings();
+  updateSettingsUI();
+}
+
+// --- Notifications ---
+function setupNotificationTimers() {
+  notificationTimers.forEach(t => clearTimeout(t));
+  notificationTimers = [];
+
+  const now = Date.now();
+  tasks.forEach(task => {
+    if (!task.time || task.done || task.notified) return;
+    const [h, m] = task.time.split(':').map(Number);
+    const taskDate = parseDate(task.date);
+    taskDate.setHours(h, m, 0, 0);
+    const notifTime = taskDate.getTime() - 60 * 60 * 1000; // 1 hour before
+    const delay = notifTime - now;
+    if (delay > 0 && delay < 24 * 60 * 60 * 1000) {
+      const timer = setTimeout(() => fireNotification(task), delay);
+      notificationTimers.push(timer);
+    }
+  });
+}
+
+function fireNotification(task) {
+  task.notified = true;
+  saveTasks();
+
+  // Browser notification
+  if (settings.browserNotif && Notification.permission === 'granted') {
+    new Notification('To Do リマインダー', {
+      body: `${task.time} - ${task.title}\n1時間後に予定があります`,
+      icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">📋</text></svg>'
+    });
+  }
+
+  // Email notification (via mailto as fallback / or show alert)
+  if (settings.emailNotif && settings.email) {
+    sendEmailNotification(task);
+  }
+}
+
+function sendEmailNotification(task) {
+  // Using a serverless notification approach:
+  // We open a mailto link as a fallback notification mechanism.
+  // For production, integrate with EmailJS, SendGrid, or a backend API.
+  const subject = encodeURIComponent(`[リマインダー] ${task.title} - ${task.time}`);
+  const body = encodeURIComponent(
+    `タスクリマインダー\n\n` +
+    `タスク: ${task.title}\n` +
+    `日時: ${task.date} ${task.time}\n` +
+    `${task.memo ? 'メモ: ' + task.memo + '\n' : ''}` +
+    `\n1時間後に予定があります。`
+  );
+
+  // Use the Notification API to show a persistent notification
+  // and create a hidden iframe to trigger mailto
+  const a = document.createElement('a');
+  a.href = `mailto:${settings.email}?subject=${subject}&body=${body}`;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+function checkNotifications() {
+  const now = Date.now();
+  tasks.forEach(task => {
+    if (!task.time || task.done || task.notified) return;
+    const [h, m] = task.time.split(':').map(Number);
+    const taskDate = parseDate(task.date);
+    taskDate.setHours(h, m, 0, 0);
+    const notifTime = taskDate.getTime() - 60 * 60 * 1000;
+    if (now >= notifTime && now < taskDate.getTime()) {
+      fireNotification(task);
+    }
+  });
+}
+
+// --- Modal helpers ---
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('open');
+  });
+});
+
+// Close modal on Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  }
+});
+
+// --- Util ---
+function escHtml(s) {
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
+}
+
+// --- Start ---
+init();
+</script>
+</body>
+</html>
